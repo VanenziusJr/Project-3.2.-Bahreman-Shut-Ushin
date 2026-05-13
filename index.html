@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+
+        /* === Custom interface for Krasnoyarsk recreation Web-GIS === */
+        #title-panel {
+            position: absolute;
+            top: 20px;
+            left: 62px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.94);
+            padding: 14px 18px;
+            border-radius: 10px;
+            max-width: 440px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            font-family: Arial, sans-serif;
+        }
+        #title-panel h1 { margin: 0 0 6px 0; font-size: 20px; line-height: 1.18; color: #222; }
+        #title-panel p { margin: 0; font-size: 13px; line-height: 1.35; color: #444; }
+        #info-panel {
+            position: absolute;
+            top: 145px;
+            left: 62px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.94);
+            padding: 14px 18px;
+            border-radius: 10px;
+            max-width: 420px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.42;
+        }
+        #info-panel h2 { margin: 0 0 8px 0; font-size: 16px; color: #222; }
+        #info-panel p { margin: 0 0 8px 0; color: #444; }
+        #legend-panel {
+            position: absolute;
+            bottom: 58px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.94);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+            min-width: 220px;
+        }
+        #legend-panel h3 { margin: 0 0 6px 0; font-size: 13px; color: #222; }
+        #legend-context { margin-bottom: 8px; font-size: 12px; color: #555; font-style: italic; }
+        .legend-row { display: flex; align-items: center; margin-bottom: 5px; }
+        .legend-color { width: 24px; height: 13px; display: inline-block; margin-right: 7px; border: 1px solid rgba(0,0,0,0.25); }
+        #footer-panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1000; }
+        #footer-panel a { color: #7a1f1f; text-decoration: none; font-weight: bold; }
+        #footer-panel a:hover { text-decoration: underline; }
+        .custom-popup h3 { margin: 0 0 8px 0; font-size: 15px; color: #222; }
+        .custom-popup p { margin: 4px 0; font-size: 13px; color: #333; }
+        </style>
+        <title>Обеспеченность рекреационной инфраструктурой Красноярска</title>
+    </head>
+    <body>
+        <div id="title-panel">
+            <h1>Обеспеченность рекреационной инфраструктурой Красноярска</h1>
+            <p>Интерактивная аналитическая карта озеленённых территорий общего пользования</p>
+        </div>
+
+        <div id="info-panel">
+            <h2>О карте</h2>
+            <p>Карта показывает обеспеченность жителей Красноярска озеленёнными территориями общего пользования.</p>
+            <p>Показатель рассчитывается как количество квадратных метров озеленённых территорий на одного жителя и отображается на уровнях районов, жилых зон и МКД.</p>
+        </div>
+
+        <div id="legend-panel">
+            <h3>ОТОП, м² на человека</h3>
+            <div id="legend-context">Уровень: районы города</div>
+            <div id="legend-rows"></div>
+        </div>
+
+        <footer id="footer-panel" style="text-align: center; padding: 10px; font-size: 12px; background-color: #f5f5f5; border-top: 1px solid #ddd;">
+            <a href="https://github.com/VanenziusJr/Project-3.2.-Bahreman-Shut-Ushin" target="_blank">
+                📊 Техническое описание проекта на GitHub
+            </a>
+        </footer>
+
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="data/boarder_1.js"></script>
+        <script src="data/green_areas_2.js"></script>
+        <script src="data/isochrones_3.js"></script>
+        <script src="data/mkd_polygons1mkd_polygons_4.js"></script>
+        <script src="data/mkd_pointsjoined_layer_5.js"></script>
+        <script src="data/residential_zonesjoined_layer_6.js"></script>
+        <script src="data/districts_7.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[56.01551070021535,92.79794759134627],[56.03228631682329,92.83671079417057]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+
+        function getCommonGreenColor(value) {
+            value = Number(value);
+            if (isNaN(value)) return '#d9d9d9';
+            if (value < 1) return '#f5f585';
+            if (value < 5) return '#fecc5c';
+            if (value < 10) return '#fd8d3c';
+            if (value <= 50) return '#f03b20';
+            return '#bd0026';
+        }
+
+        function getDistrictColor(value) {
+            value = Number(value);
+            if (isNaN(value)) return '#d9d9d9';
+            if (value <= 29.018957) return '#ffffb2';
+            if (value <= 36.018957) return '#fecc5c';
+            if (value <= 43.018957) return '#fd8d3c';
+            if (value <= 50.018957) return '#f03b20';
+            return '#bd0026';
+        }
+
+        function formatValue(value) {
+            var num = Number(value);
+            if (isNaN(num)) return 'нет данных';
+            return num.toFixed(2).replace('.', ',');
+        }
+
+        function cleanValue(value) {
+            if (value === null || value === undefined || value === '') return 'нет данных';
+            return value;
+        }
+
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_CartoDBPositronnolabels_0');
+        map.getPane('pane_CartoDBPositronnolabels_0').style.zIndex = 400;
+        var layer_CartoDBPositronnolabels_0 = L.tileLayer('https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
+            pane: 'pane_CartoDBPositronnolabels_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 18
+        });
+        layer_CartoDBPositronnolabels_0;
+        map.addLayer(layer_CartoDBPositronnolabels_0);
+        function pop_boarder_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['osm_id'] !== null ? autolinker.link(String(feature.properties['osm_id']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['class'] !== null ? autolinker.link(String(feature.properties['class']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['type'] !== null ? autolinker.link(String(feature.properties['type']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name'] !== null ? autolinker.link(String(feature.properties['name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['address'] !== null ? autolinker.link(String(feature.properties['address']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['extratags'] !== null ? autolinker.link(String(feature.properties['extratags']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_boarder_1_0() {
+            return {
+                pane: 'pane_boarder_1',
+                opacity: 1,
+                color: 'rgba(146,97,45,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,158,23,0.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_boarder_1');
+        map.getPane('pane_boarder_1').style.zIndex = 401;
+        map.getPane('pane_boarder_1').style['mix-blend-mode'] = 'normal';
+        var layer_boarder_1 = new L.geoJson(json_boarder_1, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_boarder_1',
+            layerName: 'layer_boarder_1',
+            pane: 'pane_boarder_1',
+            onEachFeature: pop_boarder_1,
+            style: style_boarder_1_0,
+        });
+        bounds_group.addLayer(layer_boarder_1);
+        map.addLayer(layer_boarder_1);
+        function pop_green_areas_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name'] !== null ? autolinker.link(String(feature.properties['name']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['area_m2'] !== null ? autolinker.link(String(feature.properties['area_m2']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_green_areas_2_0() {
+            return {
+                pane: 'pane_green_areas_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(136,182,111,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_green_areas_2');
+        map.getPane('pane_green_areas_2').style.zIndex = 402;
+        map.getPane('pane_green_areas_2').style['mix-blend-mode'] = 'normal';
+        var layer_green_areas_2 = new L.geoJson(json_green_areas_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_green_areas_2',
+            layerName: 'layer_green_areas_2',
+            pane: 'pane_green_areas_2',
+            onEachFeature: pop_green_areas_2,
+            style: style_green_areas_2_0,
+        });
+        bounds_group.addLayer(layer_green_areas_2);
+        map.addLayer(layer_green_areas_2);
+        function pop_isochrones_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_isochrones_3_0() {
+            return {
+                pane: 'pane_isochrones_3',
+                opacity: 1,
+                color: '#006837',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0,
+                fill: true,
+                fillOpacity: 0.22,
+                fillColor: '#78c679',
+                interactive: false
+            };
+        }
+        map.createPane('pane_isochrones_3');
+        map.getPane('pane_isochrones_3').style.zIndex = 403;
+        map.getPane('pane_isochrones_3').style['mix-blend-mode'] = 'normal';
+        var layer_isochrones_3 = new L.geoJson(json_isochrones_3, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_isochrones_3',
+            layerName: 'layer_isochrones_3',
+            pane: 'pane_isochrones_3',
+            onEachFeature: pop_isochrones_3,
+            style: style_isochrones_3_0,
+        });
+        bounds_group.addLayer(layer_isochrones_3);
+        // Изохроны не показываются постоянно: нужная изохрона всплывает при наведении на МКД.
+        // map.addLayer(layer_isochrones_3);
+
+        var activeIsochroneLayer = null;
+
+        function showIsochroneForFid(fid) {
+            if (fid === null || fid === undefined) return;
+            clearActiveIsochrone();
+            activeIsochroneLayer = L.geoJson(json_isochrones_3, {
+                filter: function(feature) {
+                    return String(feature.properties['fid']) === String(fid);
+                },
+                style: function() {
+                    return {
+                        color: '#006837',
+                        weight: 2.2,
+                        fillColor: '#78c679',
+                        fillOpacity: 0.26,
+                        opacity: 1
+                    };
+                },
+                interactive: false
+            }).addTo(map);
+        }
+
+        function clearActiveIsochrone() {
+            if (activeIsochroneLayer) {
+                map.removeLayer(activeIsochroneLayer);
+                activeIsochroneLayer = null;
+            }
+        }
+
+        function pop_mkd_polygons1mkd_polygons_4(feature, layer) {
+            var popupContent = '<div class="custom-popup">' +
+                '<h3>' + cleanValue(feature.properties['Адрес']) + '</h3>' +
+                '<p><b>Этажность:</b> ' + cleanValue(feature.properties['building:levels']) + '</p>' +
+                '<p><b>Население:</b> ' + cleanValue(feature.properties['population']) + '</p>' +
+                '<p><b>ОТОП:</b> ' + formatValue(feature.properties['green_m2_pc']) + ' м²/чел.</p>' +
+                '<p><b>Статус:</b> ' + cleanValue(feature.properties['status']) + '</p>' +
+                '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 400 });
+            layer.on('mouseover', function (e) {
+                this.openPopup();
+                showIsochroneForFid(feature.properties['fid']);
+                this.setStyle({ weight: 1.4, color: '#000000', fillOpacity: 0.9 });
+            });
+            layer.on('mouseout', function (e) {
+                this.closePopup();
+                clearActiveIsochrone();
+                layer_mkd_polygons1mkd_polygons_4.resetStyle(e.target);
+            });
+        }
+
+        function style_mkd_polygons1mkd_polygons_4_0(feature) {
+            return {
+                pane: 'pane_mkd_polygons1mkd_polygons_4',
+                opacity: 1,
+                color: 'rgba(45,45,45,0.65)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 0.5,
+                fill: true,
+                fillOpacity: 0.72,
+                fillColor: getCommonGreenColor(feature.properties['green_m2_pc']),
+                interactive: true
+            };
+        }
+        map.createPane('pane_mkd_polygons1mkd_polygons_4');
+        map.getPane('pane_mkd_polygons1mkd_polygons_4').style.zIndex = 404;
+        map.getPane('pane_mkd_polygons1mkd_polygons_4').style['mix-blend-mode'] = 'normal';
+        var layer_mkd_polygons1mkd_polygons_4 = new L.geoJson(json_mkd_polygons1mkd_polygons_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_mkd_polygons1mkd_polygons_4',
+            layerName: 'layer_mkd_polygons1mkd_polygons_4',
+            pane: 'pane_mkd_polygons1mkd_polygons_4',
+            onEachFeature: pop_mkd_polygons1mkd_polygons_4,
+            style: style_mkd_polygons1mkd_polygons_4_0,
+        });
+        bounds_group.addLayer(layer_mkd_polygons1mkd_polygons_4);
+        map.addLayer(layer_mkd_polygons1mkd_polygons_4);
+        function pop_mkd_pointsjoined_layer_5(feature, layer) {
+            var popupContent = '<div class="custom-popup">' +
+                '<h3>' + cleanValue(feature.properties['Адрес']) + '</h3>' +
+                '<p><b>Этажность:</b> ' + cleanValue(feature.properties['building:levels']) + '</p>' +
+                '<p><b>Население:</b> ' + cleanValue(feature.properties['population']) + '</p>' +
+                '<p><b>ОТОП:</b> ' + formatValue(feature.properties['green_m2_pc']) + ' м²/чел.</p>' +
+                '<p><b>Статус:</b> ' + cleanValue(feature.properties['status']) + '</p>' +
+                '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 400 });
+            layer.on('mouseover', function () { this.openPopup(); });
+            layer.on('mouseout', function () { this.closePopup(); });
+        }
+
+        function style_mkd_pointsjoined_layer_5_0(feature) {
+            return {
+                radius: 3.5,
+                opacity: 1,
+                color: 'rgba(45,45,45,0.75)',
+                weight: 0.5,
+                fill: true,
+                fillOpacity: 0.85,
+                fillColor: getCommonGreenColor(feature.properties['green_m2_pc']),
+                interactive: true
+            };
+        }
+        map.createPane('pane_mkd_pointsjoined_layer_5');
+        map.getPane('pane_mkd_pointsjoined_layer_5').style.zIndex = 405;
+        map.getPane('pane_mkd_pointsjoined_layer_5').style['mix-blend-mode'] = 'normal';
+        var layer_mkd_pointsjoined_layer_5 = new L.geoJson(json_mkd_pointsjoined_layer_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_mkd_pointsjoined_layer_5',
+            layerName: 'layer_mkd_pointsjoined_layer_5',
+            pane: 'pane_mkd_pointsjoined_layer_5',
+            onEachFeature: pop_mkd_pointsjoined_layer_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_mkd_pointsjoined_layer_5_0(feature));
+            },
+        });
+        var cluster_mkd_pointsjoined_layer_5 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_mkd_pointsjoined_layer_5.addLayer(layer_mkd_pointsjoined_layer_5);
+
+        bounds_group.addLayer(layer_mkd_pointsjoined_layer_5);
+        cluster_mkd_pointsjoined_layer_5.addTo(map);
+        function pop_residential_zonesjoined_layer_6(feature, layer) {
+            var popupContent = '<div class="custom-popup">' +
+                '<h3>' + cleanValue(feature.properties['name']) + '</h3>' +
+                '<p><b>ОТОП:</b> ' + formatValue(feature.properties['green_m2_pc']) + ' м²/чел.</p>' +
+                '<p><b>Население:</b> ' + cleanValue(feature.properties['population_sum']) + '</p>' +
+                '<p><b>Статус:</b> ' + cleanValue(feature.properties['status']) + '</p>' +
+                '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 400 });
+            layer.on('mouseover', function () { this.openPopup(); });
+            layer.on('mouseout', function () { this.closePopup(); });
+        }
+
+        function style_residential_zonesjoined_layer_6_0(feature) {
+            return {
+                pane: 'pane_residential_zonesjoined_layer_6',
+                opacity: 1,
+                color: 'rgba(120,90,25,0.6)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 0.8,
+                fill: true,
+                fillOpacity: 0.62,
+                fillColor: getCommonGreenColor(feature.properties['green_m2_pc']),
+                interactive: true
+            };
+        }
+        map.createPane('pane_residential_zonesjoined_layer_6');
+        map.getPane('pane_residential_zonesjoined_layer_6').style.zIndex = 406;
+        map.getPane('pane_residential_zonesjoined_layer_6').style['mix-blend-mode'] = 'normal';
+        var layer_residential_zonesjoined_layer_6 = new L.geoJson(json_residential_zonesjoined_layer_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_residential_zonesjoined_layer_6',
+            layerName: 'layer_residential_zonesjoined_layer_6',
+            pane: 'pane_residential_zonesjoined_layer_6',
+            onEachFeature: pop_residential_zonesjoined_layer_6,
+            style: style_residential_zonesjoined_layer_6_0,
+        });
+        bounds_group.addLayer(layer_residential_zonesjoined_layer_6);
+        map.addLayer(layer_residential_zonesjoined_layer_6);
+        function pop_districts_7(feature, layer) {
+            var popupContent = '<div class="custom-popup">' +
+                '<h3>' + cleanValue(feature.properties['name']) + '</h3>' +
+                '<p><b>ОТОП:</b> ' + formatValue(feature.properties['green_area_m2']) + ' м²/чел.</p>' +
+                '<p><b>Население:</b> ' + cleanValue(feature.properties['population_sum']) + '</p>' +
+                '<p><b>Площадь ОТОП:</b> ' + formatValue(feature.properties['area_m2_sum']) + ' м²</p>' +
+                '</div>';
+            layer.bindPopup(popupContent, { maxHeight: 400 });
+            layer.on('mouseover', function () { this.openPopup(); });
+            layer.on('mouseout', function () { this.closePopup(); });
+        }
+
+        function style_districts_7_0(feature) {
+            return {
+                pane: 'pane_districts_7',
+                opacity: 1,
+                color: 'rgba(122,93,23,0.65)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0,
+                fill: true,
+                fillOpacity: 0.55,
+                fillColor: getDistrictColor(feature.properties['green_area_m2']),
+                interactive: true
+            };
+        }
+        map.createPane('pane_districts_7');
+        map.getPane('pane_districts_7').style.zIndex = 407;
+        map.getPane('pane_districts_7').style['mix-blend-mode'] = 'normal';
+        var layer_districts_7 = new L.geoJson(json_districts_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_districts_7',
+            layerName: 'layer_districts_7',
+            pane: 'pane_districts_7',
+            onEachFeature: pop_districts_7,
+            style: style_districts_7_0,
+        });
+        bounds_group.addLayer(layer_districts_7);
+        map.addLayer(layer_districts_7);
+        map.on("zoomend", function(e) {
+            if (map.getZoom() <= 19 && map.getZoom() >= 12) {
+                map.addLayer(layer_green_areas_2);
+            } else if (map.getZoom() > 19 || map.getZoom() < 12) {
+                map.removeLayer(layer_green_areas_2);
+            }
+            if (map.getZoom() <= 19 && map.getZoom() >= 15) {
+                map.addLayer(layer_mkd_polygons1mkd_polygons_4);
+            } else if (map.getZoom() > 19 || map.getZoom() < 15) {
+                map.removeLayer(layer_mkd_polygons1mkd_polygons_4);
+            }
+            if (map.getZoom() <= 15 && map.getZoom() >= 14) {
+                map.addLayer(cluster_mkd_pointsjoined_layer_5);
+            } else if (map.getZoom() > 15 || map.getZoom() < 14) {
+                map.removeLayer(cluster_mkd_pointsjoined_layer_5);
+            }
+            if (map.getZoom() <= 14 && map.getZoom() >= 12) {
+                map.addLayer(layer_residential_zonesjoined_layer_6);
+            } else if (map.getZoom() > 14 || map.getZoom() < 12) {
+                map.removeLayer(layer_residential_zonesjoined_layer_6);
+            }
+            if (map.getZoom() <= 12 && map.getZoom() >= 2) {
+                map.addLayer(layer_districts_7);
+            } else if (map.getZoom() > 12 || map.getZoom() < 2) {
+                map.removeLayer(layer_districts_7);
+            }
+        });
+            if (map.getZoom() <= 19 && map.getZoom() >= 12) {
+                map.addLayer(layer_green_areas_2);
+            } else if (map.getZoom() > 19 || map.getZoom() < 12) {
+                map.removeLayer(layer_green_areas_2);
+            }
+            if (map.getZoom() <= 19 && map.getZoom() >= 15) {
+                map.addLayer(layer_mkd_polygons1mkd_polygons_4);
+            } else if (map.getZoom() > 19 || map.getZoom() < 15) {
+                map.removeLayer(layer_mkd_polygons1mkd_polygons_4);
+            }
+            if (map.getZoom() <= 15 && map.getZoom() >= 14) {
+                map.addLayer(cluster_mkd_pointsjoined_layer_5);
+            } else if (map.getZoom() > 15 || map.getZoom() < 14) {
+                map.removeLayer(cluster_mkd_pointsjoined_layer_5);
+            }
+            if (map.getZoom() <= 14 && map.getZoom() >= 12) {
+                map.addLayer(layer_residential_zonesjoined_layer_6);
+            } else if (map.getZoom() > 14 || map.getZoom() < 12) {
+                map.removeLayer(layer_residential_zonesjoined_layer_6);
+            }
+            if (map.getZoom() <= 12 && map.getZoom() >= 2) {
+                map.addLayer(layer_districts_7);
+            } else if (map.getZoom() > 12 || map.getZoom() < 2) {
+                map.removeLayer(layer_districts_7);
+            }
+        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
+        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
+        var photonControl = L.control.photon({
+            url: url["Nominatim OSM"],
+            feedbackLabel: '',
+            position: 'topleft',
+            includePosition: true,
+            initial: true,
+            // resultsHandler: myHandler,
+        }).addTo(map);
+        photonControl._container.childNodes[0].style.borderRadius="10px"
+        // Create a variable to store the geoJSON data
+        var x = null;
+        // Create a variable to store the marker
+        var marker = null;
+        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
+        var z = null;
+        photonControl.on('selected', function(e) {
+            console.log(photonControl.search.resultsContainer);
+            if (x != null) {
+                map.removeLayer(obj3.marker);
+                map.removeLayer(x);
+            }
+            obj2.gcd = e.choice;
+            x = L.geoJSON(obj2.gcd).addTo(map);
+            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
+            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
+            map.setView(x.getLayers()[0].getLatLng(), 17);
+            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
+            console.log(e);
+            e.target.input.value = z;
+        });
+        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
+        search.classList.add("leaflet-control-search")
+        search.style.display = "flex";
+        search.style.backgroundColor="rgba(255,255,255,0.5)" 
+
+        // Create the new button element
+        var button = document.createElement("div");
+        button.id = "gcd-button-control";
+        button.className = "gcd-gl-btn fa fa-search search-button";
+
+        // Insert the button at the beginning of the search control
+        search.insertBefore(button, search.firstChild);
+        last = search.lastChild;
+        last.style.display = "none";
+        button.addEventListener("click", function (e) {
+            if (last.style.display === "none") {
+                last.style.display = "block";
+            } else {
+                last.style.display = "none";
+            }
+        });
+        var overlaysTree = [
+            {label: '<b>Уровень районов</b>', selectAllCheckbox: true, children: [
+                {label: 'Районы города', layer: layer_districts_7},
+            ]},
+            {label: '<b>Уровень жилых зон</b>', selectAllCheckbox: true, children: [
+                {label: 'Жилые зоны', layer: layer_residential_zonesjoined_layer_6},
+            ]},
+            {label: '<b>Уровень МКД</b>', selectAllCheckbox: true, children: [
+                {label: 'Точки МКД', layer: cluster_mkd_pointsjoined_layer_5},
+                {label: 'Полигоны МКД', layer: layer_mkd_polygons1mkd_polygons_4},
+            ]},
+            {label: 'Озеленённые территории', layer: layer_green_areas_2},
+            {label: 'Граница города', layer: layer_boarder_1},
+        ];
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+
+        L.control.scale({ imperial: false, metric: true, position: 'bottomleft' }).addTo(map);
+
+        var commonLegendRows = [
+            ['#f5f585', '0–1 — крайне низкая степень озеленения'],
+            ['#fecc5c', '1–5 — чуть ниже нормы'],
+            ['#fd8d3c', '5–10 — в пределах нормы'],
+            ['#f03b20', '10–50 — чуть выше нормы'],
+            ['#bd0026', '50+ — сверх нормы']
+        ];
+
+        var districtLegendRows = [
+            ['#ffffb2', '22–29'],
+            ['#fecc5c', '29–36'],
+            ['#fd8d3c', '36–43'],
+            ['#f03b20', '43–50'],
+            ['#bd0026', '50–57']
+        ];
+
+        function renderLegend(rows, contextText) {
+            var legendRows = document.getElementById('legend-rows');
+            var context = document.getElementById('legend-context');
+            if (!legendRows || !context) return;
+            context.innerHTML = contextText;
+            legendRows.innerHTML = rows.map(function(row) {
+                return '<div class="legend-row"><span class="legend-color" style="background:' + row[0] + '"></span><span>' + row[1] + '</span></div>';
+            }).join('');
+        }
+
+        function updateLayerVisibilityAndLegend() {
+            var z = map.getZoom();
+            if (z <= 11) {
+                if (!map.hasLayer(layer_districts_7)) map.addLayer(layer_districts_7);
+                if (map.hasLayer(layer_residential_zonesjoined_layer_6)) map.removeLayer(layer_residential_zonesjoined_layer_6);
+                if (map.hasLayer(cluster_mkd_pointsjoined_layer_5)) map.removeLayer(cluster_mkd_pointsjoined_layer_5);
+                if (map.hasLayer(layer_mkd_polygons1mkd_polygons_4)) map.removeLayer(layer_mkd_polygons1mkd_polygons_4);
+                if (map.hasLayer(layer_green_areas_2)) map.removeLayer(layer_green_areas_2);
+                renderLegend(districtLegendRows, 'Уровень: районы города');
+            } else if (z > 11 && z <= 14) {
+                if (map.hasLayer(layer_districts_7)) map.removeLayer(layer_districts_7);
+                if (!map.hasLayer(layer_residential_zonesjoined_layer_6)) map.addLayer(layer_residential_zonesjoined_layer_6);
+                if (map.hasLayer(cluster_mkd_pointsjoined_layer_5)) map.removeLayer(cluster_mkd_pointsjoined_layer_5);
+                if (map.hasLayer(layer_mkd_polygons1mkd_polygons_4)) map.removeLayer(layer_mkd_polygons1mkd_polygons_4);
+                if (!map.hasLayer(layer_green_areas_2)) map.addLayer(layer_green_areas_2);
+                renderLegend(commonLegendRows, 'Уровень: жилые зоны');
+            } else if (z > 14 && z <= 16) {
+                if (map.hasLayer(layer_districts_7)) map.removeLayer(layer_districts_7);
+                if (map.hasLayer(layer_residential_zonesjoined_layer_6)) map.removeLayer(layer_residential_zonesjoined_layer_6);
+                if (!map.hasLayer(cluster_mkd_pointsjoined_layer_5)) map.addLayer(cluster_mkd_pointsjoined_layer_5);
+                if (map.hasLayer(layer_mkd_polygons1mkd_polygons_4)) map.removeLayer(layer_mkd_polygons1mkd_polygons_4);
+                if (!map.hasLayer(layer_green_areas_2)) map.addLayer(layer_green_areas_2);
+                renderLegend(commonLegendRows, 'Уровень: точки МКД');
+            } else {
+                if (map.hasLayer(layer_districts_7)) map.removeLayer(layer_districts_7);
+                if (map.hasLayer(layer_residential_zonesjoined_layer_6)) map.removeLayer(layer_residential_zonesjoined_layer_6);
+                if (map.hasLayer(cluster_mkd_pointsjoined_layer_5)) map.removeLayer(cluster_mkd_pointsjoined_layer_5);
+                if (!map.hasLayer(layer_mkd_polygons1mkd_polygons_4)) map.addLayer(layer_mkd_polygons1mkd_polygons_4);
+                if (!map.hasLayer(layer_green_areas_2)) map.addLayer(layer_green_areas_2);
+                renderLegend(commonLegendRows, 'Уровень: полигоны МКД');
+            }
+        }
+
+        map.on('zoomend', updateLayerVisibilityAndLegend);
+        updateLayerVisibilityAndLegend();
+
+        </script>        
+    </body>
+</html>
