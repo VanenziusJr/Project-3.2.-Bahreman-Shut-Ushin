@@ -74,6 +74,36 @@
         #footer-panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1000; }
         #footer-panel a { color: #7a1f1f; text-decoration: none; font-weight: bold; }
         #footer-panel a:hover { text-decoration: underline; }
+
+        .legend-separator {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 8px 0;
+        }
+        .legend-symbol-line {
+            width: 24px;
+            height: 0;
+            display: inline-block;
+            margin-right: 7px;
+            border-top: 3px solid #006837;
+        }
+        .legend-symbol-polygon {
+            width: 24px;
+            height: 13px;
+            display: inline-block;
+            margin-right: 7px;
+            border: 1px solid rgba(0,0,0,0.25);
+            background: rgba(136,182,111,1.0);
+        }
+        .legend-symbol-isochrone {
+            width: 24px;
+            height: 13px;
+            display: inline-block;
+            margin-right: 7px;
+            border: 2px solid #006837;
+            background: rgba(120,198,121,0.26);
+            box-sizing: border-box;
+        }
         .custom-popup h3 { margin: 0 0 8px 0; font-size: 15px; color: #222; }
         .custom-popup p { margin: 4px 0; font-size: 13px; color: #333; }
         </style>
@@ -536,7 +566,6 @@
                 '<h3>' + cleanValue(feature.properties['name']) + '</h3>' +
                 '<p><b>ОТОП:</b> ' + formatValue(feature.properties['green_m2_pc']) + ' м²/чел.</p>' +
                 '<p><b>Население:</b> ' + cleanValue(feature.properties['population_sum']) + '</p>' +
-                '<p><b>Статус:</b> ' + cleanValue(feature.properties['status']) + '</p>' +
                 '</div>';
             layer.bindPopup(popupContent, { maxHeight: 400 });
             layer.on('mouseover', function () { this.openPopup(); });
@@ -767,9 +796,17 @@
             var context = document.getElementById('legend-context');
             if (!legendRows || !context) return;
             context.innerHTML = contextText;
-            legendRows.innerHTML = rows.map(function(row) {
+
+            var scaleRows = rows.map(function(row) {
                 return '<div class="legend-row"><span class="legend-color" style="background:' + row[0] + '"></span><span>' + row[1] + '</span></div>';
             }).join('');
+
+            var thematicRows =
+                '<hr class="legend-separator">' +
+                '<div class="legend-row"><span class="legend-symbol-polygon"></span><span>Озеленённые территории общего пользования</span></div>' +
+                '<div class="legend-row"><span class="legend-symbol-isochrone"></span><span>Изохрона доступности от выбранного МКД</span></div>';
+
+            legendRows.innerHTML = scaleRows + thematicRows;
         }
 
         function updateLayerVisibilityAndLegend() {
